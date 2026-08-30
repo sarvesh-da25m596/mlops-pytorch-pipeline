@@ -1,0 +1,18 @@
+# ---- base: install deps once, cached separately from source changes ----
+FROM python:3.11-slim AS base
+WORKDIR /app
+COPY requirements/train.txt .
+RUN pip install --no-cache-dir -r train.txt
+
+# ---- training runtime ----
+FROM base AS training
+COPY src/ ./src/
+COPY configs/ ./configs/
+
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONPATH=/app/src
+WORKDIR /app/src
+
+# config comes from a mounted ConfigMap at runtime (see k8s/training-job.yaml);
+# train.py falls back to ./configs if /app/configs isn't mounted (local docker run)
+ENTRYPOINT ["python", "train.py"]
